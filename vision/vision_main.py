@@ -25,6 +25,16 @@ def color_distance(color1, color2):
     color2 = np.array(color2)
     return np.linalg.norm(color1 - color2)
 
+# Function to compute the median point between two circles
+def circles_med(circle1, circle2):
+    x1, y1 = circle1.center
+    x2, y2 = circle2.center
+
+    median_x = (x1 + x2)/2
+    median_y = (y1 + y2)/2
+
+    return (median_x, median_y)
+
 # Open Camera
 s = 0
 if len(sys.argv) > 1:
@@ -43,9 +53,9 @@ win_name = "Camera"
 cv2.namedWindow(win_name, cv2.WINDOW_NORMAL)
 
 # Define global var
-traj = np.zeros(2)
-green_ref = (50,200,0)
-red_ref = (0,30,170)
+traj = np.empty((0, 2), dtype=int)
+green_ref = (0,255,0)
+red_ref = (0,0,255)
 
 
 alive = True
@@ -113,12 +123,23 @@ while alive:
             min_distance = distance
             red_circle = circle
 
+    # Compute position of the robot
+    robot_pos = None
+    if (green_circle is not None) and (red_circle is not None):
+        robot_pos = circles_med(green_circle, red_circle)
+
     # Draw red and green circles
     if green_circle is not None:
         cv2.circle(frame, green_circle.center, green_circle.radius, green_ref, 3)
     if red_circle is not None:
         cv2.circle(frame, red_circle.center, red_circle.radius, red_ref, 3)
+    if robot_pos is not None:
+        robot_pos = (int(robot_pos[0]), int(robot_pos[1]))
+        traj = np.vstack((traj, robot_pos))
+        cv2.circle(frame, robot_pos, 1, (0,0,0),3)
 
+    for i in range(1, len(traj)):
+        cv2.line(frame, tuple(traj[i - 1]), tuple(traj[i]), (0, 255, 0), 2)
 
     cv2.imshow(win_name, frame)
     
@@ -126,5 +147,6 @@ while alive:
     if key == ord("Q") or key == ord("q") or key == 27:
         alive = False
 
+print(traj)
 source.release()
 cv2.destroyWindow(win_name)
