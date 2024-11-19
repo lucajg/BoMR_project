@@ -1,39 +1,9 @@
 import numpy as np
 import cv2
 import sys
-from functions import *
+from utilities import *
+from time import sleep
 
-# Define a class for circles
-class Circle:
-    def __init__(self, center, radius, color):
-        self.center = center  # Center position as a tuple (x, y)
-        self.radius = radius  # Radius as a float
-        self.color = color    # Color as a tuple (B, G, R)
-
-    def is_in_range(self, ref_color):
-        ref_color = np.array(ref_color)
-        dmax = 150 # max eculidian distance for the color to be considered red
-        d = color_distance(self.color, ref_color)
-        return (d <= dmax)
-
-    def __repr__(self):
-        return f"Circle(center={self.center}, radius={self.radius}, color={self.color})"
-
-# Function to compute euclidian distance between two colors
-def color_distance(color1, color2):
-    color1 = np.array(color1)
-    color2 = np.array(color2)
-    return np.linalg.norm(color1 - color2)
-
-# Function to compute the median point between two circles
-def circles_med(circle1, circle2):
-    x1, y1 = circle1.center
-    x2, y2 = circle2.center
-
-    median_x = (x1 + x2)/2
-    median_y = (y1 + y2)/2
-
-    return (median_x, median_y)
 
 # Open Camera
 s = 0
@@ -54,8 +24,8 @@ cv2.namedWindow(win_name, cv2.WINDOW_NORMAL)
 
 # Define global var
 traj = np.empty((0, 2), dtype=int)
-green_ref = (0,255,0)
-red_ref = (0,0,255)
+green_ref = (50,120,50)
+red_ref = (0,0,200)
 
 
 alive = True
@@ -70,7 +40,7 @@ while alive:
     if not has_frame:
         break
     
-    frame = cv2.flip(frame, 1)
+    frame = cv2.flip(frame, 1) # TO REMOVE WHEN USING EXT WEBCAM
 
     # Preprocessing for Hough transform
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -129,9 +99,23 @@ while alive:
         robot_pos = circles_med(green_circle, red_circle)
 
     # Draw red and green circles
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 0.6
+    font_thickness = 2
+    text_color = (255, 255, 255)
     if green_circle is not None:
         cv2.circle(frame, green_circle.center, green_circle.radius, green_ref, 3)
+        label = "GREEN"
+        text_size = cv2.getTextSize(label, font, font_scale, font_thickness)[0]
+        text_x = green_circle.center[0] - text_size[0] // 2  # Center the text horizontally
+        text_y = green_circle.center[1] - green_circle.radius - 10  # Place text above the circle
+        cv2.putText(frame, label, (text_x, text_y), font, font_scale, text_color, font_thickness)
     if red_circle is not None:
+        label = "RED"
+        text_size = cv2.getTextSize(label, font, font_scale, font_thickness)[0]
+        text_x = red_circle.center[0] - text_size[0] // 2  # Center the text horizontally
+        text_y = red_circle.center[1] - green_circle.radius - 10  # Place text above the circle
+        cv2.putText(frame, label, (text_x, text_y), font, font_scale, text_color, font_thickness)
         cv2.circle(frame, red_circle.center, red_circle.radius, red_ref, 3)
     if robot_pos is not None:
         robot_pos = (int(robot_pos[0]), int(robot_pos[1]))
@@ -146,7 +130,7 @@ while alive:
     key = cv2.waitKey(1)
     if key == ord("Q") or key == ord("q") or key == 27:
         alive = False
+    sleep(0.1)
 
-print(traj)
 source.release()
 cv2.destroyWindow(win_name)
