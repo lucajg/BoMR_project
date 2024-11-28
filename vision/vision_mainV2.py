@@ -29,9 +29,16 @@ image_filter = PREVIEW
 positions = np.empty((0, 2), dtype=int)
 angles = np.empty((0, 1), dtype=float)
 GREEN_REF = (150,220,130)
-BLUE_REF = (200, 100, 50)
+MAG_REF_HSV = (172, 180, 120)
 RED_REF = (140,130,255)
 MAX_CIRCLE_DISTANCE = 300
+
+
+ret, frame = cap.read()
+transformed_frame = detect_squares_and_transform(frame, MAG_REF_HSV)
+frame_hsv = cv2.cvtColor(transformed_frame, cv2.COLOR_BGR2HSV)
+cv2.imshow(win_name, frame_hsv)
+key = cv2.waitKey(100000)
 
 
 is_running = True
@@ -49,6 +56,8 @@ while is_running:
     ret, frame = cap.read()
     if not ret:
         break
+    height, width = frame.shape[:2]
+    #new_frame = cv2.warpPerspective(frame, transformation_matrix, (width, height))
 
     # Preprocessing for Hough transform
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
