@@ -11,7 +11,7 @@ class Circle:
     def isColorMatching(self, ref_color):
         # Color distance
         ref_color = np.array(ref_color)
-        dmax = 80 # max eculidian distance for the color to be considered equivalent
+        dmax = 30 # max eculidian distance for the color to be considered equivalent
         d = distance(self.color, ref_color)
 
         return d <= dmax
@@ -101,7 +101,6 @@ def detect_squares_and_transform(frame, ref_color):
     centroids = np.array(centroids)
 
     # Sort centroids
-
     y_sort = centroids[centroids[:, 1].argsort()]
     tops = y_sort[:2,:]
     bottoms = y_sort[2:,:]
@@ -130,7 +129,16 @@ def detect_squares_and_transform(frame, ref_color):
     # Compute the perspective transform matrix
     matrix = cv2.getPerspectiveTransform(source_quad, destination_rectangle)
 
+    # Extract map origin 
+    # origin = bottom_left
+
     # Perform the perspective transformation
     transformed_frame = cv2.warpPerspective(frame, matrix, (rect_width, rect_height))
 
-    return transformed_frame
+    return matrix
+
+def frame2mapCoord(frame_coord):
+    x, y = np.array(frame_coord)
+
+    map_coord = np.array([-(y-427), x])
+    return map_coord

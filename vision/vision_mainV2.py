@@ -28,18 +28,19 @@ cv2.namedWindow(win_name, cv2.WINDOW_NORMAL)
 image_filter = PREVIEW
 positions = np.empty((0, 2), dtype=int)
 angles = np.empty((0, 1), dtype=float)
-GREEN_REF = (150,220,130)
+GREEN_REF = (30,55,25)
 MAG_REF_HSV = (172, 180, 120)
-RED_REF = (140,130,255)
+RED_REF = (40,35,120)
 MAX_CIRCLE_DISTANCE = 300
 
 
-ret, frame = cap.read()
-transformed_frame = detect_squares_and_transform(frame, MAG_REF_HSV)
-frame_hsv = cv2.cvtColor(transformed_frame, cv2.COLOR_BGR2HSV)
-cv2.imshow(win_name, frame_hsv)
-key = cv2.waitKey(100000)
+cap_init = True
+while cap_init:
+    ret, frame = cap.read()
+    if ret:
+        cap_init = False
 
+transformation_matrix = detect_squares_and_transform(frame, MAG_REF_HSV)
 
 is_running = True
 while is_running:
@@ -57,7 +58,9 @@ while is_running:
     if not ret:
         break
     height, width = frame.shape[:2]
-    #new_frame = cv2.warpPerspective(frame, transformation_matrix, (width, height))
+    frame = cv2.warpPerspective(frame, transformation_matrix, (width, height))
+    # Resizing with 3/2 aspect ratio
+    frame = cv2.resize(frame, (640, 427))
 
     # Preprocessing for Hough transform
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -72,7 +75,7 @@ while is_running:
     
     if circles_hough is not None:
         circles_hough = np.uint16(np.around(circles_hough))       
-        print(len(circles_hough[0,:]),"detected")
+        #print(len(circles_hough[0,:]),"detected")
         for i,circle in enumerate(circles_hough[0, :]):
             center = (circle[0], circle[1])
             radius = circle[2]
@@ -81,7 +84,7 @@ while is_running:
             cv2.circle(mask, center, radius, 255, -1)
             avg_color = cv2.mean(frame, mask=mask)[:3] #  alpha channel not useful
             circles_detected.append(Circle(center, radius, avg_color))
-            print(circles_detected[i], distance(circles_detected[i].color, GREEN_REF),distance(circles_detected[i].color, RED_REF))
+            #print(circles_detected[i], distance(circles_detected[i].color, GREEN_REF),distance(circles_detected[i].color, RED_REF))
             
         if len(circles_detected) > 1:
             # Keep track of green and red
@@ -135,6 +138,7 @@ while is_running:
 
                     # Update trajectory
                     robot_position = tuple(map(int, robot_position))
+                    robot_position_map_coord = frame2mapCoord(robot_position)
                     positions = np.vstack((positions, robot_position))
                     angles  = np.vstack((angles, robot_angle_deg))
                     cv2.circle(frame, robot_position, 3, (0,0,0),-1)
