@@ -112,7 +112,8 @@ while is_running:
                     robot_angle_rad = robot_angle(green_circle.center, red_circle.center)
 
                     # Convert to degrees and normalize to [0, 360)
-                    heading_angle_degrees = (np.degrees(robot_angle_rad) + 360) % 360
+                    robot_angle_deg = (np.degrees(robot_angle_rad) + 180) % 360
+                    print(robot_angle_deg)
 
                     # Draw green and red circles
                     cv2.circle(frame, green_circle.center, green_circle.radius, GREEN_REF, 3)

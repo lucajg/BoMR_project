@@ -139,6 +139,5 @@ def detect_squares_and_transform(frame, ref_color):
 
 def frame2mapCoord(frame_coord):
     x, y = np.array(frame_coord)
-
     map_coord = np.array([-(y-427), x])
     return map_coord
