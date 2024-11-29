@@ -14,7 +14,7 @@ def main():
 
     while True:
         _, frame = capture.read()
-        #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         if colors:
             cv2.putText(frame, str(colors[-1]), (10, 50), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0), 2)
         cv2.imshow('frame', frame)

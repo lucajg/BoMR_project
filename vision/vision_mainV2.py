@@ -168,7 +168,7 @@ while is_running:
     elif key in [ord("P"), ord("p")]:
         image_filter = PREVIEW
     
-    sleep(0.1)
+    #sleep(0.1)
 
 cap.release()
 cv2.destroyWindow(win_name)
