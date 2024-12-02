@@ -141,3 +141,93 @@ def frame2mapCoord(frame_coord):
     x, y = np.array(frame_coord)
     map_coord = np.array([-(y-427), x])
     return map_coord
+
+def grid_centroids(grid_width, grid_height, frame_width, frame_height):
+    # Compute centroids of the grid squares
+    square_width = frame_width/grid_width
+    square_height = frame_height/grid_height
+
+    centroids = np.empty((0, 2), dtype=int)
+    for row in range(grid_height):
+        for col in range(grid_width):
+            x = round((col + 0.5) * square_width)
+            y = round((row + 0.5) * square_height)
+            centroids = np.vstack((centroids, [x, y]))
+    
+    return centroids, square_width, square_height
+
+def detect_obstacles(frame, centroids, square_width, square_height):
+    # Frame preprocessing
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    blur = cv2.medianBlur(gray, 7)
+    _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    
+    # Detect black squares
+    obstacles = np.empty((0, 2), dtype=int)
+    for centroid in centroids:
+        x, y = centroid
+
+        # Create a blank mask
+        mask = np.zeros(frame.shape[:2], dtype=np.uint8)
+
+        # Define the square boundaries
+        top_left = (int(x-square_width//2), int(y-square_height//2))
+        bottom_right = (int(x+square_width//2), int(y+square_height//2))
+
+        # Draw the region of interest on the mask
+        cv2.rectangle(mask, top_left, bottom_right, 255, -1)
+
+        # Compute mean value of the region of interest
+        mean = cv2.mean(frame, mask=mask)[0]
+        
+        # Classify as obstacle or not
+        if mean < 127:
+            # Convert from pixel to grid position
+            grid_x = round(x/square_width + 0.5)
+            grid_y = round(y/square_height + 0.5)
+            obstacles = np.vstack((obstacles, [grid_x, grid_y]))
+
+        return obstacles
+    
+def detect_goal(frame, ref_color):
+    frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    # Convert the frame to float for precise computation
+    frame_float = frame_hsv.astype(np.float32)
+    # Compute the Euclidean distance from the reference color
+    ref_color = np.array(ref_color, dtype=np.float32)
+    distance = np.sqrt(np.sum((frame_float - ref_color) ** 2, axis=-1))
+
+    # Threshold the image to isolate region of interest
+    dmax = 50
+    mask = (distance <= dmax).astype(np.uint8) * 255
+
+    # Find contours in the mask
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    #Filter contours to detect squares
+    squares = []
+    for contour in contours:
+        # Approximate the contour
+        epsilon = 0.02 * cv2.arcLength(contour, True)
+        approx = cv2.approxPolyDP(contour, epsilon, True)
+
+        # Check if the contour is a square
+        if len(approx) == 4 and cv2.isContourConvex(approx):
+            area = cv2.contourArea(approx)
+            if 100 < area < 1000:  # Filter by reasonable size
+                squares.append(approx)
+
+    # Ensure exactly 1 squares are detected
+    if len(squares) != 1:
+        print("Error: Expected 1 squares, but found", len(squares))
+        return False
+    else:
+        print("Succes: 1 squares found !")
+
+    # Compute goal centroid
+    square = squares[0]
+    goal_centroid = np.mean(square.reshape(-1, 2), axis=0)
+        
+
+    return goal_centroid
+    
